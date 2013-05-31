@@ -33,17 +33,17 @@ module LetterOpener
     def render
       FileUtils.mkdir_p(@location)
 
-      if mail.attachments.any?
+      if mail.attachments.present? && mail.attachments.any?
         attachments_dir = File.join(@location, 'attachments')
         FileUtils.mkdir_p(attachments_dir)
         mail.attachments.each do |attachment|
-          path = File.join(attachments_dir, attachment.filename)
+          path = File.join(attachments_dir, attachment.original_filename)
 
           unless File.exists?(path) # true if other parts have already been rendered
-            File.open(path, 'wb') { |f| f.write(attachment.body.raw_source) }
+            File.open(path, 'wb') { |f| f.write(attachment.read) }
           end
 
-          @attachments << [attachment.filename, "attachments/#{URI.escape(attachment.filename)}"]
+          @attachments << [attachment.original_filename, "attachments/#{URI.escape(attachment.original_filename)}"]
         end
       end
 
@@ -67,12 +67,6 @@ module LetterOpener
     def body
       @body ||= begin
         body = (@part && @part.body || @mail.body).to_s
-
-        mail.attachments.each do |attachment|
-          body.gsub!(attachment.url, "attachments/#{attachment.filename}")
-        end
-
-        body
       end
     end
 
@@ -116,3 +110,4 @@ module LetterOpener
     end
   end
 end
+
